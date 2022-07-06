@@ -1,4 +1,5 @@
-import React, {useState, useEffect, useContext} from 'react'
+import React, {useState, useEffect, useContext} from 'react';
+import axios from 'axios';
 import Categories from '../components/Categories';
 import Sort from '../components/Sort';
 import PizzaBlock from '../components/pizzaBlock/PizzaBlock';
@@ -6,11 +7,11 @@ import Skeleton from '../components/pizzaBlock/Skeleton';
 import Pagination from '../components/pagination';
 import { SearchContext } from '../App';
 import { useDispatch, useSelector } from 'react-redux';
-import { setCategoryId } from '../redux/slice/filterSlice';
+import { setCategoryId, setCurrentPage } from '../redux/slice/filterSlice';
 
 const Home = () => {
     const dispatch = useDispatch()
-    const { categoryId, sort} = useSelector(state => state.filter)
+    const { categoryId, sort, currentPage} = useSelector(state => state.filter)
     
     //const [categoryId, setCategoryId] = useState(0)
     /* const [sortType, setSortType] = useState({
@@ -20,11 +21,15 @@ const Home = () => {
     const {searchValue} = useContext(SearchContext)
     const [pizzas, setPizzas] = useState([])
     const [isLoading, setIsLoading] = useState(true)
-    const [currentPage, setCurrentPage] = useState(1)
+    //const [currentPage, setCurrentPage] = useState(1)
     
 
     const onChangeCategory = (id) => {
         dispatch(setCategoryId(id))
+    }
+
+    const onChangePage = (number) => {
+        dispatch(setCurrentPage(number))
     }
   
     useEffect(() => {
@@ -35,12 +40,19 @@ const Home = () => {
         const category = categoryId > 0 ? `category=${categoryId}` : ''
         const search = searchValue ? `&search=${searchValue}` : ''
 
-        fetch(`https://6295c7a475c34f1f3b20fc53.mockapi.io/items?page=${currentPage}&limit=8&${category}&sortBy=${sortBy}&order=${order}${search}`)
+        /* fetch(`https://6295c7a475c34f1f3b20fc53.mockapi.io/items?page=${currentPage}&limit=8&${category}&sortBy=${sortBy}&order=${order}${search}`)
             .then(res => res.json())
             .then(json => {
         setPizzas(json)
         setIsLoading(false)
-      })
+      }) */
+
+      axios.get(`https://6295c7a475c34f1f3b20fc53.mockapi.io/items?page=${currentPage}&limit=8&${category}&sortBy=${sortBy}&order=${order}${search}`)
+            .then((res) => {
+                setPizzas(res.data)
+                setIsLoading(false)
+            })
+
       window.scrollTo(0, 0)
     }, [categoryId, sort, searchValue, currentPage])
 
@@ -58,7 +70,7 @@ const Home = () => {
             <div className="content__items">            
                 {isLoading ? skeletons : pizzasItem}
             </div>
-            <Pagination onChangePage={(number) => setCurrentPage(number)}/>
+            <Pagination currentPage={currentPage} onChangePage={onChangePage}/>
         </div>
     )
 }
