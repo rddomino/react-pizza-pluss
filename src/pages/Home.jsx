@@ -7,22 +7,23 @@ import Skeleton from '../components/pizzaBlock/Skeleton';
 import Pagination from '../components/pagination';
 import { SearchContext } from '../App';
 import { useDispatch, useSelector } from 'react-redux';
-import { setCategoryId, setCurrentPage } from '../redux/slice/filterSlice';
+import { setCategoryId, setCurrentPage, setFilters } from '../redux/slice/filterSlice';
+import qs from 'qs';
+import { useNavigate } from 'react-router-dom';
+
+import { sortList } from '../components/Sort';
+import { useRef } from 'react';
 
 const Home = () => {
     const dispatch = useDispatch()
-    const { categoryId, sort, currentPage} = useSelector(state => state.filter)
-    
-    //const [categoryId, setCategoryId] = useState(0)
-    /* const [sortType, setSortType] = useState({
-        name: 'популярности',
-        sortProperty: 'rating'
-    }) */
+    const navigate = useNavigate()
+    const isSearch = useRef(false)
+    const isMounted = useRef(false)
+
+    const {categoryId, sort, currentPage} = useSelector(state => state.filter)      
     const {searchValue} = useContext(SearchContext)
     const [pizzas, setPizzas] = useState([])
     const [isLoading, setIsLoading] = useState(true)
-    //const [currentPage, setCurrentPage] = useState(1)
-    
 
     const onChangeCategory = (id) => {
         dispatch(setCategoryId(id))
@@ -31,30 +32,65 @@ const Home = () => {
     const onChangePage = (number) => {
         dispatch(setCurrentPage(number))
     }
-  
-    useEffect(() => {
-        setIsLoading(true)
 
+    const fetchPizzas = () => {
+        setIsLoading(true)
+    
         const order = sort.sortProperty.includes('-') ? 'asc' : 'desc'
         const sortBy = sort.sortProperty.replace('-', '')
         const category = categoryId > 0 ? `category=${categoryId}` : ''
         const search = searchValue ? `&search=${searchValue}` : ''
 
-        /* fetch(`https://6295c7a475c34f1f3b20fc53.mockapi.io/items?page=${currentPage}&limit=8&${category}&sortBy=${sortBy}&order=${order}${search}`)
-            .then(res => res.json())
-            .then(json => {
-        setPizzas(json)
-        setIsLoading(false)
-      }) */
-
-      axios.get(`https://6295c7a475c34f1f3b20fc53.mockapi.io/items?page=${currentPage}&limit=8&${category}&sortBy=${sortBy}&order=${order}${search}`)
+        axios.get(`https://6295c7a475c34f1f3b20fc53.mockapi.io/items?page=${currentPage}&limit=8&${category}&sortBy=${sortBy}&order=${order}${search}`)
             .then((res) => {
                 setPizzas(res.data)
                 setIsLoading(false)
             })
 
-      window.scrollTo(0, 0)
-    }, [categoryId, sort, searchValue, currentPage])
+        window.scrollTo(0, 0)
+    }
+
+    // Если изменили параметры и был первый рендер
+    useEffect(() => {
+        if (isMounted.current) {
+            const queryString = qs.stringify({
+                sortProperty: sort.sortProperty,
+                categoryId,
+                currentPage
+            })
+    
+            navigate(`?${queryString}`)
+        }     
+        isMounted.current = true   
+
+    }, [categoryId, sort.sortProperty, currentPage])
+
+    // Если был первый рендер, то проверяем URl-параметры и сохраняем в редаксе
+    useEffect(() => {
+        if (window.location.search) {
+            const params = qs.parse(window.location.search.substring(1))
+
+            const sort = sortList.find(obj => obj.sortProperty === params.sortProperty)
+
+            dispatch(setFilters({
+                ...params,
+                sort
+            }))
+            isSearch.current = true
+        }
+    }, [])    
+  
+    // Если был первый рендер, то запрашиваем пиццы
+    useEffect(() => {
+        window.scrollTo(0, 0)
+
+        if (!isSearch.current) {
+            fetchPizzas()
+        }
+
+        isSearch.current = false
+        
+    }, [categoryId, sort.sortProperty, searchValue, currentPage])
 
     const pizzasItem = pizzas.map(obj =>  (<PizzaBlock key={obj.id} {...obj}/>))
     const skeletons = [...new Array(8)].map((_, index) => <Skeleton key={index}/>)
