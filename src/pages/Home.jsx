@@ -67,7 +67,8 @@ const Home = () => {
 
     // Если был первый рендер, то проверяем URl-параметры и сохраняем в редаксе
     useEffect(() => {
-        if (window.location.search) {
+        if (window.location.search &&
+            window.location.search !== "?sortProperty=rating&categoryId=0&currentPage=1") {
             const params = qs.parse(window.location.search.substring(1))
 
             const sort = sortList.find(obj => obj.sortProperty === params.sortProperty)
